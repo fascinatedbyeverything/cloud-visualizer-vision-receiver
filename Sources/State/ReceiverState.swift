@@ -10,7 +10,7 @@ struct StreamPreset: Identifiable, Hashable, Sendable {
     let name: String
     let host: String
     var url: String {
-        "http://\(host):8888/live/index.m3u8"
+        "http://\(host):8888/live/stream/index.m3u8"
     }
 }
 
@@ -46,9 +46,11 @@ final class ReceiverState {
     private let browser = BonjourBrowser()
 
     init() {
-        // Low-latency playback configuration
+        // Standard live playback. We previously tried disabling stall-minimization for
+        // ultra-low latency, but it caused AVPlayer to render a single frame and stop on
+        // live HLS — there was no buffer to sustain continuous playback. Defaults are
+        // correct for fmp4 HLS streaming.
         let player = AVPlayer()
-        player.automaticallyWaitsToMinimizeStalling = false
         self.player = player
 
         // Pre-fill with last-used URL, or fall back to the first known preset on first launch
@@ -79,7 +81,8 @@ final class ReceiverState {
         let item = AVPlayerItem(asset: asset)
         // Cap to 4K so oversized HLS variants don't choke the pipeline
         item.preferredMaximumResolution = CGSize(width: 3840, height: 1920)
-        item.preferredForwardBufferDuration = 1.0
+        // Don't override preferredForwardBufferDuration — let AVPlayer pick a healthy
+        // buffer size for the stream. Forcing it tiny causes single-frame stalls on live.
 
         player.replaceCurrentItem(with: item)
         player.play()
