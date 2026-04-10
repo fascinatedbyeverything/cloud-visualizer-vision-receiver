@@ -14,6 +14,40 @@ struct MainWindow: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
 
+            if !state.presets.isEmpty {
+                GroupBox("One-Tap Connect") {
+                    VStack(spacing: 10) {
+                        ForEach(state.presets) { preset in
+                            Button {
+                                state.streamURLString = preset.url
+                                state.connect()
+                                Task {
+                                    let result = await openImmersiveSpace(id: "immersive")
+                                    if case .opened = result { immersiveOpen = true }
+                                }
+                            } label: {
+                                HStack {
+                                    Image(systemName: "dot.radiowaves.left.and.right")
+                                    VStack(alignment: .leading) {
+                                        Text(preset.name).font(.headline)
+                                        Text(preset.host)
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "play.circle.fill")
+                                        .font(.title2)
+                                }
+                                .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.large)
+                        }
+                    }
+                    .padding(6)
+                }
+            }
+
             GroupBox("Stream URL") {
                 VStack(alignment: .leading, spacing: 10) {
                     TextField("http://your-mac.local:8080/stream.m3u8", text: $state.streamURLString)

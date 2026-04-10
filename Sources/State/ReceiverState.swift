@@ -2,11 +2,30 @@ import SwiftUI
 import AVFoundation
 import Combine
 
+/// Hardcoded one-tap presets for known Macs on the local network. Edit this list to add
+/// new machines (e.g. a Mac Studio). The URL format assumes MediaMTX defaults: LL-HLS on
+/// port 8888 with stream key "live".
+struct StreamPreset: Identifiable, Hashable, Sendable {
+    let id: String
+    let name: String
+    let host: String
+    var url: String {
+        "http://\(host):8888/live/index.m3u8"
+    }
+}
+
+let knownPresets: [StreamPreset] = [
+    StreamPreset(id: "mbp", name: "MacBook Pro (this Mac)", host: "fascintated-2.local"),
+]
+
 @Observable
 @MainActor
 final class ReceiverState {
     /// The URL the user has entered / picked. Kept as a String for direct TextField binding.
     var streamURLString: String = ""
+
+    /// Static one-tap presets the UI can show as buttons.
+    let presets: [StreamPreset] = knownPresets
 
     /// Last known working URL, persisted across launches.
     var lastURLString: String {
@@ -32,8 +51,9 @@ final class ReceiverState {
         player.automaticallyWaitsToMinimizeStalling = false
         self.player = player
 
-        // Pre-fill with last-used URL
-        self.streamURLString = UserDefaults.standard.string(forKey: "lastStreamURL") ?? ""
+        // Pre-fill with last-used URL, or fall back to the first known preset on first launch
+        let saved = UserDefaults.standard.string(forKey: "lastStreamURL") ?? ""
+        self.streamURLString = saved.isEmpty ? (knownPresets.first?.url ?? "") : saved
 
         // Start Bonjour browsing so discovered streams show up in the UI
         browser.onUpdate = { [weak self] services in
