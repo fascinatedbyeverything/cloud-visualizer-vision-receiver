@@ -2,8 +2,10 @@ import SwiftUI
 
 struct MainWindow: View {
     @Bindable var state: ReceiverState
+    @Bindable var link: ControlLink
     @Environment(\.openImmersiveSpace) private var openImmersiveSpace
     @Environment(\.dismissImmersiveSpace) private var dismissImmersiveSpace
+    @Environment(\.openWindow) private var openWindow
     @State private var immersiveOpen = false
 
     var body: some View {
@@ -13,6 +15,29 @@ struct MainWindow: View {
             Text("Live 360° stream from your Mac, eBoSuite, or Ableton Syphon output.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
+
+            // THE TWO-WAY CONTROLLER. Opens its own window so it stays with you
+            // inside the immersive space.
+            Button {
+                if !link.isConnected { link.connect() }
+                openWindow(id: "controls")
+            } label: {
+                HStack {
+                    Image(systemName: "slider.horizontal.3")
+                    VStack(alignment: .leading) {
+                        Text("Controller").font(.headline)
+                        Text(link.isConnected ? link.status
+                                              : "Drive the Mac's reframe, text and transport")
+                            .font(.caption2).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Circle().fill(link.isConnected ? .green : .secondary)
+                        .frame(width: 9, height: 9)
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
 
             if !state.presets.isEmpty {
                 GroupBox("One-Tap Connect") {
@@ -30,7 +55,7 @@ struct MainWindow: View {
                                     Image(systemName: "dot.radiowaves.left.and.right")
                                     VStack(alignment: .leading) {
                                         Text(preset.name).font(.headline)
-                                        Text(preset.host)
+                                        Text(preset.subtitle)
                                             .font(.caption2)
                                             .foregroundStyle(.secondary)
                                     }

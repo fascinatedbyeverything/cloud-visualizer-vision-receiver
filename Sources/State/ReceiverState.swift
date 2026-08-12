@@ -2,20 +2,29 @@ import SwiftUI
 import AVFoundation
 import Combine
 
-/// Hardcoded one-tap presets for known Macs on the local network. Edit this list to add
-/// new machines (e.g. a Mac Studio). The URL format assumes MediaMTX defaults: LL-HLS on
-/// port 8888 with stream key "live".
+/// One-tap presets for known stream sources. Each preset stores a full HLS URL —
+/// the LAN preset points at MediaMTX on the local Mac, the global preset points at
+/// Cloudflare Stream Live's LL-HLS endpoint (works from anywhere on Earth).
 struct StreamPreset: Identifiable, Hashable, Sendable {
     let id: String
     let name: String
-    let host: String
-    var url: String {
-        "http://\(host):8888/live/stream/index.m3u8"
-    }
+    let subtitle: String
+    let url: String
 }
 
 let knownPresets: [StreamPreset] = [
-    StreamPreset(id: "mbp", name: "MacBook Pro (this Mac)", host: "fascintated-2.local"),
+    StreamPreset(
+        id: "mbp",
+        name: "MacBook Pro (this Mac)",
+        subtitle: "fascintated-2.local — LAN, sub-1s",
+        url: "http://fascintated-2.local:8888/live/stream/index.m3u8"
+    ),
+    StreamPreset(
+        id: "cloudflare",
+        name: "Global (Cloudflare)",
+        subtitle: "cloudflarestream.com — worldwide, ~2s",
+        url: "https://customer-uutaq63i96lrvqsr.cloudflarestream.com/197b8d9bc2aabd9f9b2f2dd9dca91b3d/manifest/video.m3u8?protocol=llhlsbeta"
+    ),
 ]
 
 @Observable

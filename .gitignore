@@ -7,3 +7,4 @@ xcuserdata/
 build/
 .build/
 Package.resolved
+Info.plist
