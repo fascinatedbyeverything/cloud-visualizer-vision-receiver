@@ -64,6 +64,14 @@ struct ControlPanelView: View {
                             Label("Take", systemImage: "record.circle")
                                 .frame(maxWidth: .infinity)
                         }
+                        // Stop + save in ONE gesture, auto-named "VP <date>" —
+                        // the set-building loop: perform, tap, it is kept.
+                        Button {
+                            link.fire("take.autosave")
+                        } label: {
+                            Label("Save Take", systemImage: "checkmark.circle.fill")
+                                .frame(maxWidth: .infinity)
+                        }
                     }
                     .controlSize(.large)
                     .padding(6)
@@ -103,8 +111,38 @@ struct ControlPanelView: View {
                     param("Opacity", "video.opacity", 1)
                         .padding(6)
                 }
+
+                // THE FULL SURFACE — every registry parameter the Mac's state
+                // feed broadcasts, grouped by prefix and rendered as sliders.
+                // Nothing is listed by hand: a parameter registered on the Mac
+                // tomorrow (a new motex pair, a new shader input) appears here
+                // on the next feed tick. Same law as the registry itself.
+                dynamicGroup("Motex",       prefix: "motex.")
+                dynamicGroup("ISF Shaders", prefix: "isf.")
+                dynamicGroup("Audio Mix",   prefix: "mix.")
+                dynamicGroup("Spatial",     prefix: "spatial.")
             }
             .padding(20)
+        }
+    }
+
+    /// One collapsible group of sliders for every received leaf under `prefix`.
+    @ViewBuilder
+    private func dynamicGroup(_ title: String, prefix: String) -> some View {
+        let leaves = link.values.keys.filter { $0.hasPrefix(prefix) }.sorted()
+        if !leaves.isEmpty {
+            GroupBox {
+                DisclosureGroup("\(title)  (\(leaves.count))") {
+                    VStack(spacing: 4) {
+                        ForEach(leaves, id: \.self) { leaf in
+                            param(String(leaf.dropFirst(prefix.count)), leaf,
+                                  link.value(leaf))
+                        }
+                    }
+                    .padding(.top, 4)
+                }
+                .padding(6)
+            }
         }
     }
 
