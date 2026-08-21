@@ -138,6 +138,36 @@ struct ControlPanelView: View {
                     .padding(6)
                 }
 
+                // THE MEDIA PLAYLISTS — start any saved playlist by armed
+                // index (the router's ⌊v·count⌋ law), then ride its transport.
+                GroupBox("Playlists") {
+                    VStack(spacing: 6) {
+                        presetLoadRow("Play #", "playlist.play")
+                        HStack(spacing: 12) {
+                            Button {
+                                link.fire("playlist.prev")
+                            } label: {
+                                Label("Prev", systemImage: "backward.end")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            Button {
+                                link.fire("playlist.next")
+                            } label: {
+                                Label("Next", systemImage: "forward.end")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            Button {
+                                link.fire("playlist.stop")
+                            } label: {
+                                Label("Stop", systemImage: "stop.circle")
+                                    .frame(maxWidth: .infinity)
+                            }
+                        }
+                        .controlSize(.large)
+                    }
+                    .padding(6)
+                }
+
                 // THE 6K FEED ITSELF — start/stop the Mac's direct send from
                 // in here, so entering the sphere is one gesture, no Mac trip.
                 GroupBox("Stream") {
