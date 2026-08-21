@@ -77,6 +77,75 @@ struct ControlPanelView: View {
                     .padding(6)
                 }
 
+                // THE LANES — set-style leaves (v>0.5 = play): each button
+                // sends the OPPOSITE of the Mac's broadcast state, and the
+                // label follows the feed, so it can never drift from the Mac.
+                GroupBox("Lanes") {
+                    HStack(spacing: 12) {
+                        laneToggle("Tao",   "tao.play")
+                        laneToggle("Music", "music.play")
+                        laneToggle("Video", "video.play")
+                    }
+                    .controlSize(.large)
+                    .padding(6)
+                }
+
+                // RECORD — the same ProRes takes the Mac's buttons drive
+                // (Chris 2026-08-17: "i need to be able to record the takes in
+                // here as well and save them all").
+                GroupBox("Record") {
+                    HStack(spacing: 12) {
+                        fireToggle("4K Reframe", "prores.record")
+                        fireToggle("Square",     "prores.square")
+                        fireToggle("360",        "prores.equirect")
+                        Button {
+                            link.fire("preset.autosave")
+                        } label: {
+                            Label("Save Preset", systemImage: "square.and.arrow.down")
+                                .frame(maxWidth: .infinity)
+                        }
+                    }
+                    .controlSize(.large)
+                    .padding(6)
+                }
+
+                // LOOKS — the sequencer, from inside the sphere.
+                GroupBox("Looks") {
+                    HStack(spacing: 12) {
+                        Button {
+                            link.fire("looks.go")
+                        } label: {
+                            Label("Next Look", systemImage: "forward.frame")
+                                .frame(maxWidth: .infinity)
+                        }
+                        laneToggle("Run", "looks.run")
+                    }
+                    .controlSize(.large)
+                    .padding(6)
+                }
+
+                // PRESETS — index loads (the router picks name #⌊v·count⌋).
+                // Slider arms the index locally; LOAD fires it once — a live
+                // slider here would load a preset per drag tick.
+                GroupBox("Presets") {
+                    VStack(spacing: 6) {
+                        presetLoadRow("Overall", "preset.load")
+                        presetLoadRow("Video",   "preset.video.load")
+                        presetLoadRow("Text",    "preset.text.load")
+                        presetLoadRow("Audio",   "preset.audio.load")
+                        presetLoadRow("Layout",  "preset.layout.load")
+                    }
+                    .padding(6)
+                }
+
+                // THE 6K FEED ITSELF — start/stop the Mac's direct send from
+                // in here, so entering the sphere is one gesture, no Mac trip.
+                GroupBox("Stream") {
+                    laneToggle("Vision Pro 6K Send", "stream.vp")
+                        .controlSize(.large)
+                        .padding(6)
+                }
+
                 // THE REFRAME — the one you actually want in the headset, because
                 // you are looking at the result while you move it.
                 GroupBox("Reframe") {
@@ -126,6 +195,44 @@ struct ControlPanelView: View {
         }
     }
 
+    /// A set-style toggle (leaf takes 1/0): shows the MAC's broadcast state,
+    /// sends its opposite. No local mirror to drift.
+    @ViewBuilder
+    private func laneToggle(_ title: String, _ leaf: String) -> some View {
+        let on = link.value(leaf) > 0.5
+        Button {
+            link.send(leaf: leaf, value: on ? 0 : 1)
+        } label: {
+            Label(title, systemImage: on ? "stop.circle.fill" : "play.circle")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
+        .tint(on ? .green : nil)
+    }
+
+    /// A fire-style toggle (router flips on any v>0.5). All three ProRes modes
+    /// share ONE recorder on the Mac, so every button reads the one broadcast
+    /// `prores.record` truth: recording in any mode lights all three, and
+    /// tapping any of them stops it — same as the Mac's own buttons.
+    @ViewBuilder
+    private func fireToggle(_ title: String, _ leaf: String) -> some View {
+        let on = link.value("prores.record") > 0.5
+        Button {
+            link.fire(leaf)
+        } label: {
+            Label(title, systemImage: on ? "record.circle.fill" : "record.circle")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
+        .tint(on ? .red : nil)
+    }
+
+    /// Armed index + one-shot LOAD for the router's index-load leaves.
+    @ViewBuilder
+    private func presetLoadRow(_ title: String, _ leaf: String) -> some View {
+        PresetLoadRow(title: title, leaf: leaf, link: link)
+    }
+
     /// One collapsible group of sliders for every received leaf under `prefix`.
     @ViewBuilder
     private func dynamicGroup(_ title: String, prefix: String) -> some View {
@@ -166,6 +273,33 @@ struct ControlPanelView: View {
                 onEditingChanged: { editing in
                     editing ? link.beginEdit(leaf) : link.endEdit(leaf)
                 })
+        }
+    }
+}
+
+/// One preset index-load row: the slider ARMS an index fraction locally;
+/// LOAD sends it once. (The router resolves ⌊v·count⌋ against its preset
+/// list — a live-bound slider would fire a load on every drag tick.)
+private struct PresetLoadRow: View {
+    let title: String
+    let leaf: String
+    let link: ControlLink
+    @State private var armed: Double = 0
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text(title)
+                .font(.callout)
+                .frame(width: 64, alignment: .leading)
+            Slider(value: $armed, in: 0...1)
+            Text(String(format: "%.2f", armed))
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(width: 40)
+            Button("Load") {
+                link.send(leaf: leaf, value: Float(armed))
+            }
+            .buttonStyle(.borderedProminent)
         }
     }
 }
